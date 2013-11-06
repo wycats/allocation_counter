@@ -1,3 +1,5 @@
+require "set"
+
 module AllocationCounter
   def self.count
     yield Counter.new
@@ -7,12 +9,60 @@ module AllocationCounter
     count { |c| c.count("it", 1) { yield } }
   end
 
+  def self.measure(count=1)
+    _, changes = Counter.new.measure(count) { yield }
+
+    changes.reduce({}) do |hash, (key,value)|
+      hash[key] = value[:total]
+      hash
+    end
+  end
+
+  def self.diff_allocations(mod=Object)
+    set = Set.new
+    ObjectSpace.each_object(mod) do |object|
+      set << object
+    end
+
+    yield
+
+    ObjectSpace.each_object(mod) do |object|
+      next if set.include?(object)
+      out = object.inspect
+      if out.size > 100
+        out = out[0..100] + "..."
+      end
+
+      p out
+    end
+  end
+
   class Counter
     def hash
       { last: nil, total: 0 }
     end
 
-    def count(description, count)
+    def count(description, count=1)
+      result, changes = measure(count) { yield }
+
+      puts
+      description += " (#{count} times)"
+
+      puts description
+      puts "=" * description.size
+      changes.each do |key, change|
+        if key === :allocated && change[:total].zero?
+          puts "%10s: %s" % [key, "\e[0;32mGOOD WORK! NO ALLOCATIONS\e[0m \e[0;42m:+1:\e[0m"]
+        end
+
+        next if change[:total].zero?
+        puts "%10s: %d" % [key, change[:total]]
+      end
+
+      result
+    end
+
+    def measure(count=1)
       changes = {
         allocated: hash,
         object: hash,
@@ -52,21 +102,7 @@ module AllocationCounter
         update_all(changes, results)
       end
 
-      puts
-      description += " (#{count} times)"
-
-      puts description
-      puts "=" * description.size
-      changes.each do |key, change|
-        if key === :allocated && change[:total].zero?
-          puts "%10s: %s" % [key, "\e[0;32mGOOD WORK! NO ALLOCATIONS\e[0m \e[0;42m:+1:\e[0m"]
-        end
-
-        next if change[:total].zero?
-        puts "%10s: %d" % [key, change[:total]]
-      end
-
-      result
+      return result, changes
     rescue Exception => e
       puts e.class
       puts e.message
