@@ -1,3 +1,5 @@
+require "allocation_counter"
+
 RSpec::Matchers.define :allocate do |expected|
   match do |actual|
     @actual = {}
@@ -5,8 +7,12 @@ RSpec::Matchers.define :allocate do |expected|
     counts = AllocationCounter.measure(&actual)
     expected_total = 0
 
+    counts.each do |name, count|
+      next if name == :allocated
+      @actual[name] = counts[name] if counts[name] > 0
+    end
+
     expected.each do |name, expected_count|
-      @actual[name] = counts[name]
       expected_total += expected_count
     end
 
