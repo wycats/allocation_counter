@@ -24,7 +24,7 @@ RSpec::Matchers.define :allocate do |expected|
   end
 
   failure_message_for_should do
-    "Expected block to allocate: #{@expected.inspect}"
+    "Expected block to allocate: #{@expected.inspect}, got #{@actual.inspect}"
   end
 
   diffable

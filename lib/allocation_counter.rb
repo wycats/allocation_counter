@@ -70,6 +70,7 @@ module AllocationCounter
         module: hash,
         float: hash,
         string: hash,
+        struct: hash,
         regex: hash,
         array: hash,
         hash: hash,
@@ -118,6 +119,7 @@ module AllocationCounter
       update(changes, :module, results[:T_MODULE])
       update(changes, :float, results[:T_FLOAT])
       update(changes, :string, results[:T_STRING])
+      update(changes, :struct, results[:T_STRUCT])
       update(changes, :regex, results[:T_REGEXP])
       update(changes, :array, results[:T_ARRAY])
       update(changes, :hash, results[:T_HASH])
